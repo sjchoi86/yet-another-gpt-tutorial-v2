@@ -40,7 +40,11 @@ class GPTchatClass:
                 % (self.gpt_model, self.role_msg)
             )
 
-    def _add_message(self, role="assistant", content=""):
+    def _add_message(
+        self, 
+        role    = "assistant", 
+        content = "",
+    ):
         """
         role: 'assistant' / 'user'
         """
@@ -57,6 +61,13 @@ class GPTchatClass:
             return self.response.choices[0].message.finish_reason
         else:
             return None
+
+    def reset(
+        self,
+        role_msg:str = "Your are a helpful assistant.",
+    ):
+        self.init_messages = [{"role": "system", "content": f"{role_msg}"}]
+        self.messages = self.init_messages
 
     def chat(
         self,
@@ -80,12 +91,11 @@ class GPTchatClass:
             printmd(self._get_response_content())
         # Reset
         if RESET_CHAT:
-            self.messages = self.init_messages
+            self.reset()
         # Return
         if RETURN_RESPONSE:
             return self._get_response_content()
-        
-        
+
 class GPT4VchatClass:
     def __init__(
         self,
@@ -122,7 +132,10 @@ class GPT4VchatClass:
                 % (self.gpt_model, self.role_msg)
             )
 
-    def _encode_image(self, image_pil: Image.Image) -> str:
+    def _encode_image(
+        self, 
+        image_pil: Image.Image
+    ) -> str:
         image_pil_rgb = image_pil.convert("RGB")
         # change pil to base64 string
         img_buf = io.BytesIO()
@@ -131,7 +144,10 @@ class GPT4VchatClass:
         img_base64 = base64.b64encode(img_buf.getvalue()).decode("utf-8")
         return img_base64
 
-    def _divide_by_img_tag(self, text: str) -> List[str]:
+    def _divide_by_img_tag(
+        self, 
+        text: str,
+    ) -> List[str]:
         """
         Example:
         Input: "<img1> <img2> What is the difference of these two images?"
@@ -148,7 +164,7 @@ class GPT4VchatClass:
         self, 
         role:str = "assistant", 
         content: str = "", 
-        images: Optional[List] = None
+        images: Optional[List] = None,
     ):
         """
         role: 'assistant' / 'user'
@@ -201,6 +217,9 @@ class GPT4VchatClass:
         else:
             return None
 
+    def reset(self):
+        self.messages = self.init_messages
+
     def chat(
         self,
         user_msg: str = "<img> what's in this image?",
@@ -225,7 +244,7 @@ class GPT4VchatClass:
             printmd(self._get_response_content())
         # Reset
         if RESET_CHAT:
-            self.messages = self.init_messages
+            self.reset()
         # Return
         if RETURN_RESPONSE:
             return self._get_response_content()
