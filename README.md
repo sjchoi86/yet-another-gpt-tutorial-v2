@@ -9,9 +9,24 @@ This repo contains simple tutorials of using openai package.
 
 ## Dependencies
 
-This project depends on the following Python packages:
-- openai==1.3.7
-- bs4==4.12.2
+Below is the list of Python packages this project depends on:
+
+<table>
+<tr>
+    <th>Package</th>
+    <th>Version</th>
+</tr>
+<tr>
+    <td><code>openai</code></td>
+    <td>1.3.7</td>
+</tr>
+<tr>
+    <td><code>bs4</code></td>
+    <td>4.12.2
+</td>
+</tr>
+</table>
+
 
 ## Contact
 
