@@ -1,4 +1,4 @@
-import re,io,base64
+import re,io,base64,json
 from typing import List, Optional
 from openai import OpenAI
 from PIL import Image
@@ -248,3 +248,105 @@ class GPT4VchatClass:
         # Return
         if RETURN_RESPONSE:
             return self._get_response_content()
+
+# For MavenClass usages
+class DataLogClass(object):
+    def __init__(
+            self,
+            t, # ndarray [L]
+            x, # ndarray [L x d]
+            system_prompt = None,
+        ):
+        self.t = t
+        self.x = x
+        self.d = self.x.shape[1]
+        self.dt = self.t[1]-self.t[0]
+        # Concatenate previous log histories 
+        self.messages = []
+        # Append the initial system prompt
+        if system_prompt is not None:
+            self.append_messages(role='system',content=system_prompt)
+
+    def append_messages(self,role='system',content=None,name=None,tool_call_id=None):
+        """ 
+            Append user message
+        """
+        self.messages.append({'role':role,'content':content})
+        if name is not None: self.messages[-1]['name'] = name
+        if tool_call_id is not None: self.messages[-1]['tool_call_id'] = tool_call_id
+
+class MavenClass(object):
+    def __init__(self,client,datalog,tools,function_mappings,model='gpt-4-1106-preview'):
+        """ 
+        Initialize Maven, an intelligent API recommender based on GPTs
+        :param client: OpenAI client
+        :param datalog: This contains data as well as log for OpenAI APIs
+        """
+        self.client  = client
+        self.datalog = datalog
+        self.tools   = tools
+        self.function_mappings = function_mappings
+        self.model   = model
+
+    def recommend_api(self,usr_msg,n_choice=1,verbose=True):
+        """ 
+        Recomment APIs from user meassage
+        for tools: https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools 
+        for json schema: https://json-schema.org/understanding-json-schema/reference/type
+        """
+        # Append user message to datalog
+        self.datalog.append_messages(role='user',content=usr_msg)
+
+        # Get response from the server
+        response = self.client.chat.completions.create(
+            model       = self.model,
+            messages    = self.datalog.messages,
+            tools       = self.tools,
+            tool_choice = 'auto',
+            n           = n_choice,
+        )
+        self.recommended_api = response
+        if verbose:
+            self.print_recommended_api()
+
+    def print_recommended_api(self):
+        """ 
+            Print recommended APIs
+        """
+        recommended_api = self.recommended_api
+        n_choice = len(recommended_api.choices)
+        for c_idx in range(n_choice): # for each choice
+            choice = recommended_api.choices[c_idx]
+            tool_calls = choice.message.tool_calls
+            if tool_calls:
+                for tool_idx,tool_call in enumerate(tool_calls): # for each tool
+                    function_name = tool_call.function.name
+                    function_args = tool_call.function.arguments
+                    print ("choice:[%d/%d] tool_idx:[%d/%d] function_name:[%s] function_args:%s"%
+                        (c_idx,n_choice,tool_idx,len(tool_calls),function_name,function_args))
+                if (n_choice>1) and (c_idx<(n_choice-1)):
+                    print ("")
+    
+    def select_recommended_api(self,choice_idx=0,verbose=True):
+        """ 
+            Select one of the recommended api
+        """
+        print ("choice_idx:[%d] selected"%(choice_idx))
+        recommended_api = self.recommended_api
+        choice = recommended_api.choices[choice_idx]
+        tool_calls = choice.message.tool_calls
+        for tool_idx,tool_call in enumerate(tool_calls): # for each tool
+            function_name = tool_call.function.name
+            function_args = tool_call.function.arguments
+            if verbose: # print first
+                print ("tool_idx:[%d/%d] function_name:[%s] function_args:%s"%
+                    (tool_idx,len(tool_calls),function_name,function_args))
+            # Actual function call
+            _fn = self.function_mappings[function_name]
+            json_function_args = json.loads(function_args)
+            _fn_output = _fn(data=self.datalog,**json_function_args)
+            # Append message
+            self.datalog.append_messages(role='assistant',content=str(tool_call.function))
+            self.datalog.append_messages(
+                role='function',content=_fn_output,name=function_name,tool_call_id=tool_call.id)
+
