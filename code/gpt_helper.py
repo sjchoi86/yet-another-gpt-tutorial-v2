@@ -14,11 +14,10 @@ class GPTchatClass:
         key_path:str  = '',
         VERBOSE:bool  = True,
     ):
-        self.gpt_model = gpt_model
-        self.role_msg  = role_msg
-        self.key_path  = key_path
-        self.VERBOSE   = VERBOSE
-        
+        self.gpt_model     = gpt_model
+        self.role_msg      = role_msg
+        self.key_path      = key_path
+        self.VERBOSE       = VERBOSE
         self.messages      = [{"role": "system", "content": f"{role_msg}"}]
         self.init_messages = [{"role": "system", "content": f"{role_msg}"}]
         self.response      = None
@@ -99,26 +98,31 @@ class GPTchatClass:
 class GPT4VchatClass:
     def __init__(
         self,
-        gpt_model:str = "gpt-4-vision-preview",
-        role_msg:str = "You are a helpful agent with vision capabilities; do not respond to objects not depicted in images.",
+        gpt_model:str      = "gpt-4-vision-preview",
+        role_msg:str       = """
+            You are a helpful agent with vision capabilities; 
+            do not respond to objects not depicted in images.
+            """,
         image_max_size:int = 512,
-        key_path:str  = '',
-        VERBOSE:bool = True,
+        key_path:str       = '',
+        VERBOSE:bool       = True,
     ):
-        self.gpt_model = gpt_model
-        self.role_msg = role_msg
+        self.gpt_model      = gpt_model
+        self.role_msg       = role_msg
         self.image_max_size = image_max_size
-        self.key_path = key_path
-        self.VERBOSE = VERBOSE
-        
-        self.messages = [{"role": "system", "content": f"{role_msg}"}]
-        self.init_messages = [{"role": "system", "content": f"{role_msg}"}]
-        self.console = Console()
-        self.response = None
-        
+        self.key_path       = key_path
+        self.VERBOSE        = VERBOSE
+        self.messages       = [{"role": "system", "content": f"{role_msg}"}]
+        self.init_messages  = [{"role": "system", "content": f"{role_msg}"}]
+        self.console        = Console()
+        self.response       = None
+        # Setup GPT client
         self._setup_client()
 
     def _setup_client(self):
+        """ 
+            Setup GPT client
+        """
         if self.VERBOSE:
             self.console.print(f"[bold cyan]key_path:[%s][/bold cyan]" % (self.key_path))
 
@@ -222,13 +226,13 @@ class GPT4VchatClass:
 
     def chat(
         self,
-        user_msg: str = "<img> what's in this image?",
+        user_msg: str     = "<img> what's in this image?",
         images: List[str] = ["../img/cat.png"],
-        PRINT_USER_MSG=True,
-        PRINT_GPT_OUTPUT=True,
-        RESET_CHAT=False,
-        RETURN_RESPONSE=True,
-        MAX_TOKENS = 512,
+        PRINT_USER_MSG    = True,
+        PRINT_GPT_OUTPUT  = True,
+        RESET_CHAT        = False,
+        RETURN_RESPONSE   = True,
+        MAX_TOKENS        = 512,
     ):
         self._add_message(role="user", content=user_msg, images=images)
         self.response = self.client.chat.completions.create(
@@ -267,7 +271,13 @@ class DataLogClass(object):
         if system_prompt is not None:
             self.append_messages(role='system',content=system_prompt)
 
-    def append_messages(self,role='system',content=None,name=None,tool_call_id=None):
+    def append_messages(
+        self,
+        role         = 'system',
+        content      = None,
+        name         = None,
+        tool_call_id = None,
+    ):
         """ 
             Append user message
         """
@@ -276,22 +286,34 @@ class DataLogClass(object):
         if tool_call_id is not None: self.messages[-1]['tool_call_id'] = tool_call_id
 
 class MavenClass(object):
-    def __init__(self,client,datalog,tools,function_mappings,model='gpt-4-1106-preview'):
+    def __init__(
+        self,
+        client,
+        datalog,
+        tools,
+        function_mappings,
+        model='gpt-4-1106-preview'
+    ):
         """ 
         Initialize Maven, an intelligent API recommender based on GPTs
         :param client: OpenAI client
         :param datalog: This contains data as well as log for OpenAI APIs
         """
-        self.client  = client
-        self.datalog = datalog
-        self.tools   = tools
+        self.client            = client
+        self.datalog           = datalog
+        self.tools             = tools
         self.function_mappings = function_mappings
-        self.model   = model
+        self.model             = model
 
-    def recommend_api(self,usr_msg,n_choice=1,verbose=True):
+    def recommend_api(
+        self,
+        usr_msg,
+        n_choice = 1,
+        verbose  = True,
+    ):
         """ 
         Recomment APIs from user meassage
-        for tools: https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools 
+        for tool create: https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools 
         for json schema: https://json-schema.org/understanding-json-schema/reference/type
         """
         # Append user message to datalog
@@ -316,7 +338,7 @@ class MavenClass(object):
         recommended_api = self.recommended_api
         n_choice = len(recommended_api.choices)
         for c_idx in range(n_choice): # for each choice
-            choice = recommended_api.choices[c_idx]
+            choice     = recommended_api.choices[c_idx]
             tool_calls = choice.message.tool_calls
             if tool_calls:
                 for tool_idx,tool_call in enumerate(tool_calls): # for each tool
@@ -327,26 +349,37 @@ class MavenClass(object):
                 if (n_choice>1) and (c_idx<(n_choice-1)):
                     print ("")
     
-    def select_recommended_api(self,choice_idx=0,verbose=True):
+    def select_recommended_api(
+        self,
+        choice_idx = 0,
+        verbose    = True,
+    ):
         """ 
             Select one of the recommended api
         """
         print ("choice_idx:[%d] selected"%(choice_idx))
         recommended_api = self.recommended_api
-        choice = recommended_api.choices[choice_idx]
-        tool_calls = choice.message.tool_calls
+        choice          = recommended_api.choices[choice_idx]
+        tool_calls      = choice.message.tool_calls
         for tool_idx,tool_call in enumerate(tool_calls): # for each tool
             function_name = tool_call.function.name
             function_args = tool_call.function.arguments
             if verbose: # print first
                 print ("tool_idx:[%d/%d] function_name:[%s] function_args:%s"%
                     (tool_idx,len(tool_calls),function_name,function_args))
-            # Actual function call
+            # Function call
             _fn = self.function_mappings[function_name]
             json_function_args = json.loads(function_args)
-            _fn_output = _fn(data=self.datalog,**json_function_args)
+            _fn_output = _fn(data=self.datalog,**json_function_args) # actual function call happens here
             # Append message
-            self.datalog.append_messages(role='assistant',content=str(tool_call.function))
             self.datalog.append_messages(
-                role='function',content=_fn_output,name=function_name,tool_call_id=tool_call.id)
+                role    = 'assistant',
+                content = str(tool_call.function),
+            )
+            self.datalog.append_messages(
+                role         = 'function',
+                content      = _fn_output,
+                name         = function_name,
+                tool_call_id = tool_call.id,
+            )
 
