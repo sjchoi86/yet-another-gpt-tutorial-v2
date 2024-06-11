@@ -5,7 +5,6 @@ from PIL import Image
 from rich.console import Console
 from util import printmd
 
-
 class GPTchatClass:
     def __init__(
         self,
